@@ -1,0 +1,43 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String          @id @default(uuid())
+  name          String
+  email         String          @unique
+  password      String
+  role          String          @default("user")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  submissions   URLSubmission[]
+}
+
+model URLSubmission {
+  id           String    @id @default(uuid())
+  websiteUrl   String
+  businessName String
+  priority     String    // "low" | "medium" | "high"
+  status       String    @default("pending") // "pending" | "success" | "failed"
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reports      Report[]
+}
+
+model Report {
+  id                 String        @id @default(uuid())
+  urlSubmissionId    String
+  urlSubmission      URLSubmission @relation(fields: [urlSubmissionId], references: [id], onDelete: Cascade)
+  totalAttempts      Int           @default(0)
+  successfulAttempts Int           @default(0)
+  failedAttempts     Int           @default(0)
+  successRate        Int           @default(0)
+  createdAt          DateTime      @default(now())
+}
