@@ -10,6 +10,7 @@ export interface URLSubmission {
 
 export interface DashboardStats {
   totalUrls: number;
+  pendingUrls: number;
   successfulSubmissions: number;
   failedSubmissions: number;
   successRate: number;

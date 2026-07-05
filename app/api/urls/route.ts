@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { prisma, updateUserAnalytics } from "@/lib/db";
 import { z } from "zod";
 
 const urlSchema = z.object({
@@ -40,10 +40,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Recalculate user analytics
+    await updateUserAnalytics(userId);
+
     // Create a mock associated report for the submission to simulate automation activity
     await prisma.report.create({
       data: {
-        urlSubmissionId: submission.id,
+        submissionId: submission.id,
+        userId,
         totalAttempts: 1,
         successfulAttempts: 0,
         failedAttempts: 0,
@@ -62,13 +66,17 @@ export async function POST(req: NextRequest) {
 
         await prisma.report.create({
           data: {
-            urlSubmissionId: submission.id,
+            submissionId: submission.id,
+            userId,
             totalAttempts: 2,
             successfulAttempts: outcome === "success" ? 1 : 0,
             failedAttempts: outcome === "failed" ? 1 : 0,
             successRate: outcome === "success" ? 100 : 0,
           },
         });
+
+        // Re-trigger user analytics updates
+        await updateUserAnalytics(userId);
       } catch (err) {
         console.error("Simulated completion error:", err);
       }

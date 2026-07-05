@@ -3,7 +3,7 @@
 import React from "react";
 import { useDashboardState } from "@/lib/context/dashboard-state";
 import { StatCard } from "@/components/dashboard/stat-card";
-import { Link2, CheckCircle2, XCircle, TrendingUp, RefreshCw } from "lucide-react";
+import { Link2, CheckCircle2, XCircle, TrendingUp, RefreshCw, Clock } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -40,7 +40,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Grid statistics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           title="Total Targets"
           value={stats.totalUrls}
@@ -49,7 +49,14 @@ export default function DashboardPage() {
           trend={{ value: "+12.5%", type: "positive" }}
         />
         <StatCard
-          title="Successful Submissions"
+          title="Pending Targets"
+          value={stats.pendingUrls}
+          description="Awaiting outreach automation"
+          icon={Clock}
+          trend={{ value: "Active", type: "neutral" }}
+        />
+        <StatCard
+          title="Completed Submissions"
           value={stats.successfulSubmissions}
           description="Forms successfully submitted"
           icon={CheckCircle2}
@@ -60,7 +67,7 @@ export default function DashboardPage() {
           value={stats.failedSubmissions}
           description="Form automated actions failed"
           icon={XCircle}
-          trend={{ value: "-2.4%", type: "positive" }} // positive color meaning reduction/lowering error rate
+          trend={{ value: "-2.4%", type: "positive" }}
         />
         <StatCard
           title="Success Rate"

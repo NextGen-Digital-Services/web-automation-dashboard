@@ -84,6 +84,7 @@ export function DashboardStateProvider({ children }: { children: React.ReactNode
 
   // Stats calculation based on backend records
   const totalUrls = submissions.length;
+  const pendingUrls = submissions.filter((s) => s.status === "pending").length;
   const successfulSubmissions = submissions.filter((s) => s.status === "success").length;
   const failedSubmissions = submissions.filter((s) => s.status === "failed").length;
   const successRate = totalUrls > 0 
@@ -92,6 +93,7 @@ export function DashboardStateProvider({ children }: { children: React.ReactNode
 
   const stats: DashboardStats = {
     totalUrls,
+    pendingUrls,
     successfulSubmissions,
     failedSubmissions,
     successRate,

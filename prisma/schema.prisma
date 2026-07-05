@@ -8,36 +8,64 @@ generator client {
 }
 
 model User {
-  id            String          @id @default(uuid())
-  name          String
-  email         String          @unique
-  password      String
-  role          String          @default("user")
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  submissions   URLSubmission[]
+  id          String          @id @default(uuid())
+  name        String
+  email       String          @unique
+  password    String
+  role        String          @default("user")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  lastLogin   DateTime?
+  isActive    Boolean         @default(true)
+  submissions URLSubmission[]
+  reports     Report[]
+  analytics   Analytics?
 }
 
 model URLSubmission {
-  id           String    @id @default(uuid())
-  websiteUrl   String
-  businessName String
-  priority     String    // "low" | "medium" | "high"
-  status       String    @default("pending") // "pending" | "success" | "failed"
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  userId       String
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reports      Report[]
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  websiteUrl     String
+  businessName   String
+  priority       String    // "low" | "medium" | "high"
+  status         String    @default("pending") // "pending" | "success" | "failed"
+  submissionDate DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  reports        Report[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([websiteUrl])
 }
 
 model Report {
   id                 String        @id @default(uuid())
-  urlSubmissionId    String
-  urlSubmission      URLSubmission @relation(fields: [urlSubmissionId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissionId       String
+  urlSubmission      URLSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   totalAttempts      Int           @default(0)
   successfulAttempts Int           @default(0)
   failedAttempts     Int           @default(0)
   successRate        Int           @default(0)
   createdAt          DateTime      @default(now())
+
+  @@index([userId])
+  @@index([submissionId])
+}
+
+model Analytics {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalUrls      Int       @default(0)
+  successfulUrls Int       @default(0)
+  failedUrls     Int       @default(0)
+  successRate    Int       @default(0)
+  lastUpdated    DateTime  @default(now()) @updatedAt
+
+  @@index([userId])
 }

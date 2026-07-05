@@ -42,6 +42,21 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      // 1. Verify if email exists in database
+      const checkRes = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email }),
+      });
+      const checkData = await checkRes.json();
+
+      if (!checkData.exists) {
+        setError("Account not found. Please create an account.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Authenticate credentials
       const result = await signIn("credentials", {
         redirect: false,
         email: data.email,
@@ -49,7 +64,7 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError(result.error);
+        setError("Incorrect password");
       } else {
         router.push("/dashboard");
         router.refresh();
@@ -77,9 +92,20 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <Alert variant="destructive" className="bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-450">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="text-xs">{error}</AlertDescription>
+          <Alert variant="destructive" className="bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/20 dark:border-rose-900/50 dark:text-rose-450 flex flex-col gap-2.5 items-start p-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4.5 w-4.5 shrink-0" />
+              <AlertDescription className="text-xs font-semibold">{error}</AlertDescription>
+            </div>
+            {error.includes("create an account") && (
+              <Button
+                type="button"
+                onClick={() => router.push("/register")}
+                className="mt-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white rounded-lg text-xs py-1.5 px-3 h-auto cursor-pointer font-medium"
+              >
+                Create Account
+              </Button>
+            )}
           </Alert>
         )}
 

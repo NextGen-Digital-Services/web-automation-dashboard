@@ -13,8 +13,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 
+import { useSession, signOut } from "next-auth/react";
+
 export function Navbar() {
   const { activities } = useDashboardState();
+  const { data: session } = useSession();
   const unreadCount = activities.length;
 
   return (
@@ -94,15 +97,22 @@ export function Navbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <div className="px-3 py-2 flex flex-col">
-              <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">Fahad</span>
-              <span className="text-xs text-zinc-400 dark:text-zinc-500">administrator@saas.com</span>
+              <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">
+                {session?.user?.name || "User"}
+              </span>
+              <span className="text-xs text-zinc-400 dark:text-zinc-500">
+                {session?.user?.email || "user@saas.com"}
+              </span>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer">My Profile</DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">Billing & Subscription</DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">Integrations</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/20 cursor-pointer">
+            <DropdownMenuItem
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/20 cursor-pointer"
+            >
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

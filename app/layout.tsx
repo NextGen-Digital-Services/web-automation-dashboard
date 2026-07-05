@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
 import { QueryProvider } from "@/providers/query-provider";
+import { AuthProvider } from "@/providers/auth-provider";
 import { DashboardStateProvider } from "@/lib/context/dashboard-state";
 
 const geistSans = Geist({
@@ -33,17 +34,19 @@ export default function RootLayout({
     >
       <body className="min-h-screen bg-zinc-50/50 dark:bg-zinc-950/50 font-sans flex text-zinc-900 dark:text-zinc-50">
         <QueryProvider>
-          <DashboardStateProvider>
-            <div className="flex w-full min-h-screen">
-              <Sidebar />
-              <div className="flex-1 flex flex-col min-w-0">
-                <Navbar />
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-zinc-50/30 dark:bg-zinc-950/30">
-                  {children}
-                </main>
+          <AuthProvider>
+            <DashboardStateProvider>
+              <div className="flex w-full min-h-screen">
+                <Sidebar />
+                <div className="flex-1 flex flex-col min-w-0">
+                  <Navbar />
+                  <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-zinc-50/30 dark:bg-zinc-950/30">
+                    {children}
+                  </main>
+                </div>
               </div>
-            </div>
-          </DashboardStateProvider>
+            </DashboardStateProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

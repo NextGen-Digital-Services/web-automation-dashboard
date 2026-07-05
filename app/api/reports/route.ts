@@ -12,12 +12,10 @@ export async function GET() {
 
     const userId = (session.user as { id: string }).id;
 
-    // Fetch reports belonging to URL submissions of the current user
+    // Fetch reports belonging to the user directly using the new indexed column
     const reports = await prisma.report.findMany({
       where: {
-        urlSubmission: {
-          userId,
-        },
+        userId,
       },
       include: {
         urlSubmission: true,

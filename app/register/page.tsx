@@ -10,12 +10,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { signIn } from "next-auth/react";
 import { Loader2, AlertCircle, CheckCircle2, UserPlus } from "lucide-react";
 
 const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(1, "Name is required"),
   email: z.string().min(1, "Email is required").email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string().min(1, "Confirm password is required"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -36,6 +41,7 @@ export default function RegisterPage() {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -50,7 +56,11 @@ export default function RegisterPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+        }),
       });
 
       const result = await response.json();
@@ -59,9 +69,22 @@ export default function RegisterPage() {
         setError(result.message || "Something went wrong during registration.");
       } else {
         setSuccess(true);
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
+        // Automatically sign in the user
+        const loginResult = await signIn("credentials", {
+          redirect: false,
+          email: data.email,
+          password: data.password,
+        });
+
+        if (loginResult?.error) {
+          setError("Account created, but automatic sign-in failed. Please login manually.");
+          setTimeout(() => {
+            router.push("/login");
+          }, 2000);
+        } else {
+          router.push("/dashboard");
+          router.refresh();
+        }
       }
     } catch {
       setError("Failed to register. Please check your internet connection and try again.");
@@ -141,7 +164,7 @@ export default function RegisterPage() {
 
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                  Password (min. 6 chars)
+                  Password (min. 8 chars)
                 </label>
                 <Input
                   type="password"
@@ -151,6 +174,21 @@ export default function RegisterPage() {
                 />
                 {errors.password && (
                   <p className="text-xs text-rose-600 mt-1">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                  Confirm Password
+                </label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  className="h-10 bg-zinc-50/50 dark:bg-zinc-900/50 focus-visible:bg-white rounded-lg border-zinc-200 dark:border-zinc-800"
+                  {...register("confirmPassword")}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-xs text-rose-600 mt-1">{errors.confirmPassword.message}</p>
                 )}
               </div>
             </CardContent>

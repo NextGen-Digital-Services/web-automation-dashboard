@@ -30,14 +30,20 @@ export const authOptions: AuthOptions = {
         });
 
         if (!user) {
-          throw new Error("No user found with this email");
+          throw new Error("Account not found. Please create an account.");
         }
 
         const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isPasswordValid) {
-          throw new Error("Invalid password");
+          throw new Error("Incorrect password");
         }
+
+        // Update last login timestamp in background
+        prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() },
+        }).catch((err) => console.error("Failed to update lastLogin:", err));
 
         return {
           id: user.id,

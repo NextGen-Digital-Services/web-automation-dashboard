@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { prisma, updateUserAnalytics } from "@/lib/db";
 import { z } from "zod";
 
 const updateUrlSchema = z.object({
@@ -85,6 +85,8 @@ export async function PUT(
       data: validation.data,
     });
 
+    await updateUserAnalytics(userId);
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error("Update URL error:", error);
@@ -123,6 +125,8 @@ export async function DELETE(
     await prisma.uRLSubmission.delete({
       where: { id },
     });
+
+    await updateUserAnalytics(userId);
 
     return NextResponse.json({ message: "Submission deleted successfully" });
   } catch (error) {
