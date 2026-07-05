@@ -8,32 +8,36 @@ generator client {
 }
 
 model User {
-  id          String          @id @default(uuid())
-  name        String
-  email       String          @unique
-  password    String
-  role        String          @default("user")
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  lastLogin   DateTime?
-  isActive    Boolean         @default(true)
-  submissions URLSubmission[]
-  reports     Report[]
-  analytics   Analytics?
+  id           String          @id @default(uuid())
+  name         String
+  email        String          @unique
+  password     String
+  role         String          @default("user")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  lastLogin    DateTime?
+  isActive     Boolean         @default(true)
+  submissions  URLSubmission[]
+  reports      Report[]
+  analytics    Analytics?
+  activityLogs ActivityLog[]
 }
 
 model URLSubmission {
-  id             String    @id @default(uuid())
+  id             String             @id @default(uuid())
   userId         String
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   websiteUrl     String
   businessName   String
-  priority       String    // "low" | "medium" | "high"
-  status         String    @default("pending") // "pending" | "success" | "failed"
-  submissionDate DateTime  @default(now())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  priority       String             // "low" | "medium" | "high"
+  status         String             @default("pending") // "pending" | "success" | "failed"
+  submissionDate DateTime           @default(now())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
   reports        Report[]
+  jobs           AutomationJob[]
+  detections     FormDetection[]
+  results        SubmissionResult[]
 
   @@index([userId])
   @@index([status])
@@ -69,3 +73,57 @@ model Analytics {
 
   @@index([userId])
 }
+
+model AutomationJob {
+  id           String        @id @default(uuid())
+  submissionId String
+  submission   URLSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  status       String        @default("pending") // "pending" | "processing" | "success" | "failed" | "retrying"
+  attempts     Int           @default(0)
+  maxAttempts  Int           @default(3)
+  lastError    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([submissionId])
+  @@index([status])
+}
+
+model FormDetection {
+  id           String        @id @default(uuid())
+  submissionId String
+  submission   URLSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  formSelector String?
+  fieldsJson   Json          // array of detected fields: { name, type, label, id, placeholder, selector, etc. }
+  createdAt    DateTime      @default(now())
+
+  @@index([submissionId])
+}
+
+model SubmissionResult {
+  id               String        @id @default(uuid())
+  submissionId     String
+  submission       URLSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  success          Boolean
+  filledFieldsJson Json          // mapped values filled: { fieldName: value }
+  screenshotPath   String?       // base64 data or server file path
+  errorMessage     String?
+  responseStatus   Int?
+  durationMs       Int?
+  createdAt        DateTime      @default(now())
+
+  @@index([submissionId])
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+

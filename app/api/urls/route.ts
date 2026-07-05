@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma, updateUserAnalytics } from "@/lib/db";
 import { z } from "zod";
+import { queueJob, checkUserDailyLimit } from "@/services/queue";
 
 const urlSchema = z.object({
   websiteUrl: z.string().url("Must be a valid website URL"),
@@ -30,6 +31,32 @@ export async function POST(req: NextRequest) {
 
     const { websiteUrl, businessName, priority } = validation.data;
 
+    // Check daily limit of 5000 URLs
+    const limitExceeded = await checkUserDailyLimit(userId);
+    if (limitExceeded) {
+      return NextResponse.json(
+        { message: "Daily limit of 5000 URL submissions exceeded" },
+        { status: 429 }
+      );
+    }
+
+    // Check for duplicate pending or processing URL submission for this user
+    const duplicate = await prisma.uRLSubmission.findFirst({
+      where: {
+        userId,
+        websiteUrl,
+        status: { in: ["pending"] },
+      },
+    });
+
+    if (duplicate) {
+      return NextResponse.json(
+        { message: "This URL is already being processed" },
+        { status: 409 }
+      );
+    }
+
+    // Create the submission
     const submission = await prisma.uRLSubmission.create({
       data: {
         websiteUrl,
@@ -40,47 +67,30 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Recalculate user analytics
-    await updateUserAnalytics(userId);
-
-    // Create a mock associated report for the submission to simulate automation activity
-    await prisma.report.create({
+    // Create the automation job
+    const job = await prisma.automationJob.create({
       data: {
         submissionId: submission.id,
-        userId,
-        totalAttempts: 1,
-        successfulAttempts: 0,
-        failedAttempts: 0,
-        successRate: 0,
+        status: "pending",
       },
     });
 
-    // Fire simulated status completion in database background
-    setTimeout(async () => {
-      try {
-        const outcome = Math.random() > 0.3 ? "success" : "failed";
-        await prisma.uRLSubmission.update({
-          where: { id: submission.id },
-          data: { status: outcome },
-        });
+    // Log the initial activity
+    await prisma.activityLog.create({
+      data: {
+        userId,
+        action: "URL_REGISTERED",
+        details: `Registered outreach target: ${businessName} (${websiteUrl})`,
+      },
+    });
 
-        await prisma.report.create({
-          data: {
-            submissionId: submission.id,
-            userId,
-            totalAttempts: 2,
-            successfulAttempts: outcome === "success" ? 1 : 0,
-            failedAttempts: outcome === "failed" ? 1 : 0,
-            successRate: outcome === "success" ? 100 : 0,
-          },
-        });
+    // Recalculate user analytics
+    await updateUserAnalytics(userId);
 
-        // Re-trigger user analytics updates
-        await updateUserAnalytics(userId);
-      } catch (err) {
-        console.error("Simulated completion error:", err);
-      }
-    }, 8000);
+    // Queue the job for background execution (non-blocking)
+    queueJob(job.id).catch((err) => {
+      console.error("Queue job error:", err);
+    });
 
     return NextResponse.json(submission, { status: 201 });
   } catch (error) {
@@ -115,3 +125,4 @@ export async function GET() {
     );
   }
 }
+
